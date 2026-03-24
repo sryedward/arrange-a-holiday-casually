@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>多语言风格罗盘</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f3ea, #efe2d4);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(255, 252, 245, 0.92);
+            border-radius: 2rem;
+            padding: 1.5rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+
+        /* 语言栏 */
+        .lang-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .lang-btn {
+            background: #e8dccc;
+            border: none;
+            padding: 6px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #5a4a2e;
+            transition: 0.2s;
+        }
+        .lang-btn.active {
+            background: #c9aa6f;
+            color: white;
+        }
+
+        /* 两栏 */
+        .main {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            justify-content: center;
+        }
+
+        /* 转盘区 */
+        .wheel-area {
+            flex: 1.2;
+            min-width: 350px;
+            text-align: center;
+        }
+        .title-box {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #fff0df;
+            border-radius: 50px;
+            display: inline-block;
+            width: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .title-zh {
+            font-family: '华文楷书', '楷体', 'STKaiti', 'KaiTi', cursive;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            background: #fffef5;
+            border-radius: 50%;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            cursor: pointer;
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0 15px;
+        }
+        button {
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+        }
+        .spin-btn {
+            background: #ffb85e;
+            color: white;
+        }
+        .random-btn {
+            background: #c5ddb5;
+            color: #3a5a2a;
+        }
+        .result {
+            background: #fff6e8;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* 历史区 */
+        .history-area {
+            flex: 0.9;
+            min-width: 280px;
+            background: #faf3e8;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e2cba4;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .clear-btn {
+            background: #e0c8a8;
+            color: #6b4a2a;
+            padding: 5px 15px;
+            font-size: 0.8rem;
+        }
+        .record-list {
+            max-height: 450px;
+            overflow-y: auto;
+        }
+        .record-item {
+            background: rgba(235, 215, 180, 0.4);
+            margin: 8px 0;
+            padding: 10px 12px;
+            border-radius: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+        .record-date {
+            background: #e7d5b9;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        .record-style {
+            background: #fcf3e2;
+            padding: 3px 12px;
+            border-radius: 20px;
+            max-width: 200px;
+            text-align: center;
+        }
+        .empty-msg {
+            text-align: center;
+            color: #b28a60;
+            padding: 30px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.7rem;
+            color: #9e8568;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="lang-bar">
+        <button class="lang-btn" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="en">English</button>
+        <button class="lang-btn" data-lang="ko">한국어</button>
+    </div>
+
+    <div class="main">
+        <div class="wheel-area">
+            <div class="title-box">
+                <span id="titleZh" class="title-zh">📌 今天要做的事</span>
+                <span id="titleEn" style="display:none">📌 Today's Mission</span>
+                <span id="titleKo" style="display:none">📌 오늘 할 일</span>
+            </div>
+            <canvas id="wheel" width="550" height="550"></canvas>
+            <div class="btn-group">
+                <button class="spin-btn" id="spinBtn">🎡 <span id="spinText">转动</span></button>
+                <button class="random-btn" id="randomBtn">🎲 <span id="randomText">随机爱好</span></button>
+            </div>
+            <div class="result">
+                🎯 <span id="todayLabel">今日风格</span> : <strong id="currentStyle">—</strong>
+            </div>
+        </div>
+
+        <div class="history-area">
+            <div class="history-header">
+                <h3 id="historyTitle">📅 记录</h3>
+                <button class="clear-btn" id="clearBtn">🗑 <span id="clearText">清空</span></button>
+            </div>
+            <div class="record-list" id="historyList">
+                <div class="empty-msg" id="emptyMsg">✨ 转动即记录 ✨</div>
+            </div>
+        </div>
+    </div>
+    <footer id="footer">✨ 点击转盘 · 每次转动自动存档 ✨</footer>
+</div>
+
+<script>
+    // ==================== 多语言文本 ====================
+    const texts = {
+        zh: { title: "📌 今天要做的事", today: "今日风格", spin: "转动", random: "随机爱好", clear: "清空", history: "📅 记录", empty: "✨ 转动即记录 ✨", footer: "✨ 点击转盘 · 每次转动自动存档 ✨", confirm: "清空所有记录？" },
+        en: { title: "📌 Today's Mission", today: "Today's Style", spin: "SPIN", random: "Randomize", clear: "Clear", history: "📅 Records", empty: "✨ Spin to record ✨", footer: "✨ Click wheel · Auto-save every spin ✨", confirm: "Clear all records?" },
+        ko: { title: "📌 오늘 할 일", today: "오늘의 스타일", spin: "돌리기", random: "랜덤 취미", clear: "삭제", history: "📅 기록", empty: "✨ 회전하면 저장됨 ✨", footer: "✨ 휠 클릭 · 매회 자동 저장 ✨", confirm: "모든 기록을 삭제하시겠습니까?" }
+    };
+
+    // ==================== 兴趣库 (35+) ====================
+    const INTERESTS = [
+        { zh: "🎨 艺术创作", ko: "🎨 예술 창작" }, { zh: "📖 深度阅读", ko: "📖 깊이 읽기" },
+        { zh: "🏃 户外奔跑", ko: "🏃 야외 달리기" }, { zh: "🎧 音乐冥想", ko: "🎧 음악 명상" },
+        { zh: "🍳 烹饪美食", ko: "🍳 요리 미식" }, { zh: "💻 极客编码", ko: "💻 긱 코딩" },
+        { zh: "🧘 瑜伽静心", ko: "🧘 요가 정심" }, { zh: "📸 街拍光影", ko: "📸 스냅 사진" },
+        { zh: "🌿 园艺种植", ko: "🌿 원예 가꾸기" }, { zh: "🎲 桌游对战", ko: "🎲 보드게임" },
+        { zh: "✍️ 手帐记录", ko: "✍️ 저널링" }, { zh: "🎭 戏剧表演", ko: "🎭 연극 공연" },
+        { zh: "🔧 DIY手工", ko: "🔧 DIY 공예" }, { zh: "🐱 撸猫治愈", ko: "🐱 고양이 힐링" },
+        { zh: "🏋️ 力量训练", ko: "🏋️ 웨이트" }, { zh: "🌊 冲浪冒险", ko: "🌊 서핑" },
+        { zh: "✈️ 旅行探索", ko: "✈️ 여행" }, { zh: "🎮 电竞时刻", ko: "🎮 e스포츠" },
+        { zh: "🧩 智力解谜", ko: "🧩 퍼즐" }, { zh: "🎤 唱歌表演", ko: "🎤 노래" },
+        { zh: "💃 街舞律动", ko: "💃 댄스" }, { zh: "🏹 射箭", ko: "🏹 양궁" },
+        { zh: "🔭 观星", ko: "🔭 별 관측" }, { zh: "🚴 骑行", ko: "🚴 사이클링" }
+    ];
+    
+    const STYLES = {
+        zh: ["沉浸专注", "大胆突破", "佛系随缘", "雷厉风行", "幽默搞怪", "严谨计划", "灵感迸发", "社交达人", "极简高效", "温暖治愈"],
+        en: ["Deep Focus", "Bold Move", "Go with Flow", "Swift Action", "Playful Wit", "Meticulous", "Inspired", "Social Mode", "Minimal", "Warm Heart"],
+        ko: ["몰입 집중", "대담 돌파", "자연스러움", "신속 결단", "유머 감각", "철저 계획", "영감 폭발", "사교적", "미니멀", "따뜻함"]
+    };
+
+    // ==================== 全局变量 ====================
+    let lang = 'zh';
+    let segments = [];
+    let rotation = 0;
+    let spinning = false;
+    let animId = null;
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const STORAGE_KEY = "StyleWheelRecords";
+
+    // ==================== 生成随机转盘 ====================
+    function genSegments() {
+        const count = Math.floor(Math.random() * 3) + 6; // 6-8
+        const shuffled = [...INTERESTS];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        const selected = shuffled.slice(0, count);
+        return selected.map(s => {
+            const styleIdx = Math.floor(Math.random() * STYLES.zh.length);
+            return {
+                zh: `${s.zh} · ${STYLES.zh[styleIdx]}`,
+                ko: `${s.ko} · ${STYLES.ko[styleIdx]}`,
+                en: `${s.zh.split(' ')[0]} · ${STYLES.en[styleIdx]}`
+            };
+        });
+    }
+
+    // ==================== 绘制转盘 ====================
+    function draw() {
+        if (!segments.length) return;
+        const n = segments.length;
+        const angleStep = (Math.PI * 2) / n;
+        const r = canvas.width / 2;
+        const cx = r, cy = r;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for (let i = 0; i < n; i++) {
+            const start = i * angleStep + rotation;
+            const end = (i + 1) * angleStep + rotation;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, r, start, end);
+            ctx.fillStyle = `hsl(${35 + i * 25}, 60%, 72%)`;
+            ctx.fill();
+            ctx.strokeStyle = "#fff0e0";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(start + angleStep / 2);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            let txt = segments[i][lang];
+            if (txt.length > 18) txt = txt.slice(0, 16) + '..';
+            ctx.font = `bold ${Math.max(11, Math.min(15, r / 12))}px "Segoe UI", "Noto Sans KR"`;
+            ctx.fillStyle = "#3a2c1c";
+            ctx.fillText(txt, r * 0.68, 5);
+            ctx.restore();
+        }
+        
+        // 中心向外指针
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx, cy - r * 0.72);
+        ctx.lineWidth = r * 0.045;
+        ctx.strokeStyle = "#c97e3a";
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - 10, cy - r * 0.72 + 12);
+        ctx.lineTo(cx, cy - r * 0.72 - 4);
+        ctx.lineTo(cx + 10, cy - r * 0.72 + 12);
+        ctx.fillStyle = "#e0943e";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.08, 0, Math.PI * 2);
+        ctx.fillStyle = "#f5d79c";
+        ctx.fill();
+    }
+
+    // ==================== 获取当前选中 ====================
+    function getSelectedIdx() {
+        if (!segments.length) return 0;
+        const n = segments.length;
+        const angleStep = (Math.PI * 2) / n;
+        const pointer = -Math.PI / 2;
+        for (let i = 0; i < n; i++) {
+            let start = i * angleStep + rotation;
+            let end = (i + 1) * angleStep + rotation;
+            let p = (pointer + 2 * Math.PI) % (2 * Math.PI);
+            let s = start % (2 * Math.PI);
+            let e = end % (2 * Math.PI);
+            if (s < e) { if (p >= s && p < e) return i; }
+            else { if (p >= s || p < e) return i; }
+        }
+        return 0;
+    }
+
+    // ==================== 记录 (无限追加) ====================
+    function saveRecord() {
+        const idx = getSelectedIdx();
+        if (!segments[idx]) return;
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+        const record = {
+            date: dateStr,
+            style: { zh: segments[idx].zh, ko: segments[idx].ko, en: segments[idx].en },
+            time: Date.now()
+        };
+        let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        records.unshift(record);
+        if (records.length > 500) records = records.slice(0, 500);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const listDiv = document.getElementById('historyList');
+        if (!records.length) {
+            listDiv.innerHTML = `<div class="empty-msg">${texts[lang].empty}</div>`;
+            return;
+        }
+        listDiv.innerHTML = records.map(r => `
+            <div class="record-item">
+                <span class="record-date">${r.date}</span>
+                <span class="record-style">${r.style[lang] || r.style.zh}</span>
+            </div>
+        `).join('');
+    }
+
+    function clearHistory() {
+        if (confirm(texts[lang].confirm)) {
+            localStorage.removeItem(STORAGE_KEY);
+            renderHistory();
+        }
+    }
+
+    // ==================== 转动动画 ====================
+    function spin() {
+        if (spinning) return;
+        spinning = true;
+        const rounds = 6 + Math.random() * 10;
+        const duration = 1200;
+        const start = performance.now();
+        const startRot = rotation;
+        const target = startRot + Math.PI * 2 * rounds + Math.random() * Math.PI * 2;
+        
+        function animate(now) {
+            const t = Math.min(1, (now - start) / duration);
+            const ease = 1 - Math.pow(1 - t, 3);
+            rotation = startRot + target * ease;
+            draw();
+            if (t < 1) {
+                animId = requestAnimationFrame(animate);
+            } else {
+                rotation = (startRot + target) % (Math.PI * 2);
+                draw();
+                spinning = false;
+                cancelAnimationFrame(animId);
+                saveRecord();
+                document.getElementById('currentStyle').innerText = segments[getSelectedIdx()][lang];
+            }
+        }
+        if (animId) cancelAnimationFrame(animId);
+        animId = requestAnimationFrame(animate);
+    }
+
+    function randomize() {
+        if (spinning) return;
+        segments = genSegments();
+        rotation = 0;
+        draw();
+        document.getElementById('currentStyle').innerText = segments[getSelectedIdx()][lang];
+    }
+
+    // ==================== 语言切换 ====================
+    function setLanguage(l) {
+        lang = l;
+        document.getElementById('titleZh').style.display = l === 'zh' ? 'inline' : 'none';
+        document.getElementById('titleEn').style.display = l === 'en' ? 'inline' : 'none';
+        document.getElementById('titleKo').style.display = l === 'ko' ? 'inline' : 'none';
+        document.getElementById('todayLabel').innerText = texts[lang].today;
+        document.getElementById('spinText').innerText = texts[lang].spin;
+        document.getElementById('randomText').innerText = texts[lang].random;
+        document.getElementById('clearText').innerText = texts[lang].clear;
+        document.getElementById('historyTitle').innerHTML = texts[lang].history;
+        document.getElementById('footer').innerHTML = texts[lang].footer;
+        if (segments.length) {
+            document.getElementById('currentStyle').innerText = segments[getSelectedIdx()][lang];
+        }
+        renderHistory();
+        draw();
+    }
+
+    // ==================== 初始化 ====================
+    segments = genSegments();
+    draw();
+    renderHistory();
+    document.getElementById('currentStyle').innerText = segments[getSelectedIdx()][lang];
+    
+    // 绑定事件
+    document.getElementById('spinBtn').onclick = spin;
+    document.getElementById('randomBtn').onclick = randomize;
+    document.getElementById('clearBtn').onclick = clearHistory;
+    canvas.onclick = spin;
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            setLanguage(btn.dataset.lang);
+        };
+    });
+    document.querySelector('.lang-btn[data-lang="zh"]').classList.add('active');
+</script>
+</body>
+</html>
